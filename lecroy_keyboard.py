@@ -41,13 +41,14 @@ class Keyboard:
                 val = int(input())
             except:
                 print("Not an integer.")
+                continue
             if val >= len(avail_ports):
                 print("Not an available device.")
                 val = None
 
         if val != 0:
             write_command = ports.open_resource(avail_ports[val]).write
-            print("Connected to: " + ports.list_resources()[val])
+            print("Connected to: " + avail_ports[val])
         else:
             write_command = print
             print("Writing commands to screen.")
@@ -119,9 +120,9 @@ print("N.B.-- This program intercepts all key strokes while running.")
 print("\tBe wise what you type while this is running")
 write_command = Keyboard.get_write_command()
 print("Creating keyboards...")
-k1 = Keyboard("qwerasdfzxcv", [("shift","octave")], "c1", write_command)
+k1 = Keyboard("1234567890-=", [("shift","octave")], "c1", write_command,110)
 
-k2 = Keyboard("uiopjk;lm,./", [("shift_r","octave")], "c2", write_command)
+k2 = Keyboard("qwertyuiop[]", [("shift_r","octave")], "c2", write_command,110*2**(5/12))
 
 print("Ready to play! Hit 'esc' to stop.")
 
