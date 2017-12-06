@@ -1,5 +1,4 @@
 import pynput.keyboard as pnk
-import visa
 
 class Keyboard:
     def __init__(self, keys, key_mod, channel, write_command=print, frq=55):
@@ -22,24 +21,37 @@ class Keyboard:
     @classmethod
     def get_write_command(cls):
         print("Gathering available devices...")
+        try:
+            import visa
+        except Exception as e:
+            print('Failed to import `visa`: Using `print`.')
+            return print
+
         # visa.log_to_screen()
         ports=visa.ResourceManager()
-        val == None
+        avail_ports = ['No device; use `print`']+list(ports.list_resources())
+        val = None
         while val == None:
             i=0
-            print("Choose device to connect to:")
-            for port in ports.list_resources():
-                print('\t'+ i + '. ' + str(port))
+            print("Choose device to write to:")
+            for port in avail_ports:
+                print('\t'+ str(i) + '. ' + str(port))
                 i = i + 1
             try:
                 val = int(input())
             except:
                 print("Not an integer.")
-            if val > len(ports.list_resources())-1:
+            if val >= len(avail_ports):
                 print("Not an available device.")
                 val = None
-        write_command = ports.open_resource(ports.list_resources()[val]).write
-        print("Connected to: " + ports.list_resources()[val])
+
+        if val != 0:
+            write_command = ports.open_resource(avail_ports[val]).write
+            print("Connected to: " + ports.list_resources()[val])
+        else:
+            write_command = print
+            print("Writing commands to screen.")
+
         return write_command
 
     def release(self, key):
@@ -105,11 +117,11 @@ def on_release(k1,k2):
 
 print("N.B.-- This program intercepts all key strokes while running.")
 print("\tBe wise what you type while this is running")
-# write_command = Keyboard.get_write_command()
+write_command = Keyboard.get_write_command()
 print("Creating keyboards...")
-k1 = Keyboard("qwerasdfzxcv", [("shift","octave")], "C1")
+k1 = Keyboard("qwerasdfzxcv", [("shift","octave")], "c1", write_command)
 
-k2 = Keyboard("uiopjk;lm,./", [("shift_r","octave")], "C2")
+k2 = Keyboard("uiopjk;lm,./", [("shift_r","octave")], "c2", write_command)
 
 print("Ready to play! Hit 'esc' to stop.")
 
