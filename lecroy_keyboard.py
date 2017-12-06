@@ -1,5 +1,3 @@
-import pynput.keyboard as pnk
-
 class Keyboard:
     def __init__(self, keys, key_mod, channel, write_command=print, frq=55):
         self.keys = keys
@@ -48,7 +46,7 @@ class Keyboard:
 
         if val != 0:
             write_command = ports.open_resource(avail_ports[val]).write
-            print("Connected to: " + avail_ports[val])
+            print("Write command for: " + avail_ports[val])
         else:
             write_command = print
             print("Writing commands to screen.")
@@ -99,35 +97,54 @@ class Keyboard:
             *2**(self.modifier_state.get('octave',0)) )
 
 
-def on_press(k1,k2):
-    def internal_on_press(key):
-        # print("Pressed: '{}'".format(Keyboard.parse_input(key)))
-        k1.press(key)
-        k2.press(key)
-    return internal_on_press
+class KeyboardListener:
+    def __init__(self,*args):
+        self.keyboards = args
 
-def on_release(k1,k2):
-    def internal_on_release(key):
-        if key == pnk.Key.esc:
-            return False
-        # print("Released: '{}'".format(Keyboard.parse_input(key)))
-        k1.release(key)
-        k2.release(key)
-    return internal_on_release
+    def on_press(self):
+        def internal_on_press(key):
+            # print("Pressed: '{}'".format(Keyboard.parse_input(key)))
+            for k in self.keyboards:
+                k.press(key)
+        return internal_on_press
+
+    def on_release(self):
+        def internal_on_release(key):
+            if key == pnk.Key.esc:
+                return False
+            # print("Released: '{}'".format(Keyboard.parse_input(key)))
+            for k in self.keyboards:
+                k.release(key)
+        return internal_on_release
+
+    def listen(self):
+        try:
+            import pynput.keyboard
+        except Exception as e:
+            print("Failed to import `pynput.keyboard`")
+            raise e
+        print("N.B.-- This program intercepts all key strokes while running.")
+        print("\tBe wise what you type while this is running")
+        print("Ready to play! Hit 'esc' to stop.")
+        with pynput.keyboard.Listener(
+                on_press=self.on_press(),
+                on_release=self.on_release()) as listener:
+            listener.join()
+            # Collect events until terminated
 
 
-print("N.B.-- This program intercepts all key strokes while running.")
-print("\tBe wise what you type while this is running")
-write_command = Keyboard.get_write_command()
-print("Creating keyboards...")
-k1 = Keyboard("1234567890-=", [("shift","octave")], "c1", write_command,110)
+def main():
+    write_command = Keyboard.get_write_command()
 
-k2 = Keyboard("qwertyuiop[]", [("shift_r","octave")], "c2", write_command,110*2**(5/12))
+    print("Creating keyboards...")
 
-print("Ready to play! Hit 'esc' to stop.")
+    k1 = Keyboard("0987654321`", [("shift","octave")], "c1", write_command,110)
 
-# Collect events until terminated
-with pnk.Listener(
-        on_press=on_press(k1,k2),
-        on_release=on_release(k1,k2)) as listener:
-    listener.join()
+    k2 = Keyboard("poiuytrewq]", [("shift_r","octave")], "c2", write_command,110*2**(5/12))
+
+    kl = KeyboardListener(k1,k2)
+
+    kl.listen()
+
+
+main()
