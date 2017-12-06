@@ -2,9 +2,9 @@ import pynput.keyboard as pnk
 import visa
 
 class Keyboard:
-    def __init__(self, keys, key_mod_pair, channel, write_command = print, frq = 55):
+    def __init__(self, keys, key_mod, channel, write_command=print, frq=55):
         self.keys = keys
-        self.modifier_keys = dict(tuple(k) for k in key_mod_pair)
+        self.modifier_keys = dict(tuple(k) for k in key_mod)
         self.modifier_state = {k: False for k in self.modifier_keys.values()}
         self.pressed_keys = ""
         self.current_note = {'keys':"", 'mods':self.modifier_state.copy()}
@@ -73,7 +73,7 @@ class Keyboard:
         if frq == None:
             command = self.channel + ':outp off'
         else:
-            command = self.channel+':outp on;'
+            command = self.channel + ':outp on;'
             command += self.channel + ':bswv frq,{:.3f}hz'.format(frq)
         self.write_command(command)
 
@@ -86,17 +86,22 @@ class Keyboard:
             *2**(self.modifier_state.get('octave',0)) )
 
 
-def on_press(key,k1,k2):
-    # print("Pressed: '{}'".format(Keyboard.parse_input(key)))
-    k1.press(key)
-    k2.press(key)
+def on_press(k1,k2):
+    def internal_on_press(key):
+        # print("Pressed: '{}'".format(Keyboard.parse_input(key)))
+        k1.press(key)
+        k2.press(key)
+    return internal_on_press
 
-def on_release(key,k1,k2):
-    if key == pnk.Key.esc:
-        return False
-    # print("Released: '{}'".format(Keyboard.parse_input(key)))
-    k1.release(key)
-    k2.release(key)
+def on_release(k1,k2):
+    def internal_on_release(key):
+        if key == pnk.Key.esc:
+            return False
+        # print("Released: '{}'".format(Keyboard.parse_input(key)))
+        k1.release(key)
+        k2.release(key)
+    return internal_on_release
+
 
 print("N.B.-- This program intercepts all key strokes while running.")
 print("\tBe wise what you type while this is running")
@@ -110,6 +115,6 @@ print("Ready to play! Hit 'esc' to stop.")
 
 # Collect events until terminated
 with pnk.Listener(
-        on_press=lambda key: on_press(key,k1,k2),
-        on_release=lambda key: on_release(key,k1,k2)) as listener:
+        on_press=on_press(k1,k2),
+        on_release=on_release(k1,k2)) as listener:
     listener.join()
