@@ -46,11 +46,14 @@ class Keyboard:
 
 class LecroySpeaker:
     def __init__(self):
-        self.write = LecroySpeaker.get_write_command()
-        self.amp = self.write(':bswv amp?')
+        self.device = LecroySpeaker.get_device()
+        if self.device == None:
+            self.write = print
+        else:
+            self.write = self.device.write
 
     @classmethod
-    def get_write_command(cls):
+    def get_device(cls):
         print("Gathering available devices...")
         try:
             import visa
@@ -60,7 +63,7 @@ class LecroySpeaker:
 
         # visa.log_to_screen()
         ports=visa.ResourceManager()
-        avail_ports = ['No device; use `print`'] + list(ports.list_resources())
+        avail_ports = ['Standard Out'] + list(ports.list_resources())
         val = None
         while val == None:
             i=0
@@ -78,28 +81,27 @@ class LecroySpeaker:
                 val = None
 
         if val != 0:
-            write_command = ports.open_resource(avail_ports[val]).write
+            device = ports.open_resource(avail_ports[val])
             print("Write command for: " + avail_ports[val])
         else:
-            write_command = print
+            device = None
             print("Writing commands to screen.")
 
-        return write_command
+        return device
 
     def play(self,channel):
         def play_internal(frq):
             if frq == None:
-                command = channel + ':bswv amp,4mv'
-                # command = self.channel + ':outp off'
+                command = channel + ':outp off'
             else:
-                command = channel + ':bswv frq,{:.3f}hz;'.format(frq)
-                command += channel + ':bswv amp,{}'.format(self.amp)
-                # command += self.channel + ':outp on;'
+                command = channel + ':outp on;'
+                command += channel + ':bswv frq,{:.3f}hz;'.format(frq)
+
             self.write(command)
         return play_internal
 
 
-class KeyboardListener:
+class KeysListener:
     def __init__(self,*args):
         self.keyboards = args
         try:
@@ -148,13 +150,18 @@ def main():
 
     print("Connecting Speakers...")
     s1 = LecroySpeaker()
+    s2 = LecroySpeaker()
 
     print("Creating keyboards...")
-    k1 = Keyboard("=-0987654321", [("up","octave"),("down","sustain")], s1.play("c1"), 110)
+    mods = [("up","octave"),("down","sustain")]
 
-    k2 = Keyboard("][poiuytrewq", [("up","octave"),("down","sustain")], s1.play("c2"), 110*2**(7/12))
+    k1 = Keyboard("0987654321", mods, s1.play("c1"), 110)
+    k2 = Keyboard("poiuytrewq", mods, s1.play("c2"), 110*2**(7/12))
+    k3 = Keyboard(";lkjhgfdsa", mods, s2.play("c1"), 110*2**(14/12))
+    k4 = Keyboard("/.,mnbvcxz", mods, s2.play("c2"), 110*2**(21/12))
 
-    kl = KeyboardListener(k1,k2)
+    print("Creating keys listener...")
+    kl = KeysListener(k1,k2,k3,k4)
 
     kl.listen()
 
